@@ -1,0 +1,25 @@
+$RESOURCENAMESUFFIX="12345"
+
+az deployment sub create --template-file ./main.bicep --parameters resourceNameSuffix=$RESOURCENAMESUFFIX --location westeurope       
+
+$RESSOURCE_GROUP = "RateMyBeer" + $RESOURCENAMESUFFIX
+$CLUSTER_NAME = $RESSOURCE_GROUP.ToLower()
+$MC_RESSOURCEGROUP = "MC_" + $RESSOURCE_GROUP + "_" + $CLUSTER_NAME + "_westeurope"
+
+az aks get-credentials -g $RESSOURCE_GROUP -n $CLUSTER_NAME
+
+$PUBLICIP = (az network public-ip show --resource-group $MC_RESSOURCEGROUP --name KubernetesNginxIngressPuplicIp --query ipAddress --output tsv)
+
+kubectl create namespace ingress-nginx
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm repo update
+helm show chart ingress-nginx/ingress-nginx # appVersion 0.47.0, version 3.33.0
+helm install nginx-ingress ingress-nginx/ingress-nginx `
+    --namespace ingress-nginx `
+    --set controller.replicaCount=1 `
+    --set controller.service.loadBalancerIP=$PUBLICIP `
+    --set controller.service.annotations."service\.beta\.kubernetes\.io/azure-dns-label-name"=$CLUSTER_NAME `
+    --set controller.service.annotations."service\.beta\.kubernetes\.io/azure-load-balancer-resource-group"=$MC_RESSOURCEGROUP `
+    --set controller.nodeSelector."kubernetes\.io/os"=linux `
+    --set defaultBackend.nodeSelector."kubernetes\.io/os"=linux `
+    --set controller.admissionWebhooks.patch.nodeSelector."kubernetes\.io/os"=linux
