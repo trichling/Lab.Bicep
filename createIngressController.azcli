@@ -1,6 +1,6 @@
 $RESOURCENAMESUFFIX="12345"
 
-az deployment sub create --template-file ./main.bicep --parameters resourceNameSuffix=$RESOURCENAMESUFFIX --location westeurope       
+az deployment sub create --template-file ./main.bicep --parameters resourceNameSuffix=$RESOURCENAMESUFFIX--location westeurope       
 
 $RESSOURCE_GROUP = "RateMyBeer" + $RESOURCENAMESUFFIX
 $CLUSTER_NAME = $RESSOURCE_GROUP.ToLower()
